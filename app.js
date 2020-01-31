@@ -31,7 +31,7 @@ console.log(city)
 console.log(temperature)
 
 // Rest operator
-const [parisId, nycId, othersCitiesId] = citiesId
+const [parisId, nycId, ...othersCitiesId] = citiesId
 console.log('parisId : ' + parisId)
 console.log('nycId : ' + nycId)
 console.log('othersCitiesId.length : ' + othersCitiesId.length)
@@ -58,7 +58,7 @@ class Trip {
     }
 
     toString() {
-        console.log('Trip [ ' + this.id + ', ' + this.name + ', ' + this.imageUrl + ', ' + this.price + ']')
+        console.log('Trip [ ' + this.id + ', ' + this.name + ', ' + this.imageUrl + ']')
     }
 }
 
@@ -68,6 +68,10 @@ class FreeTrip extends Trip {
         super(id, name, imageUrl)
         this.price = price
     }
+
+    toString() {
+        return `Free${super.toString()}`;
+    }    
 }
 
 parisTrip1 = { id: 'paris', name: 'Paris', imageUrl: 'img/paris.jpg' }
@@ -82,11 +86,11 @@ parisTrip2.toString();
 
 const defaultTrip = Trip.getDefaultTrip()
 console.log('-------')
-console.log(defaultTrip.toString())
+console.log(defaultTrip)
 console.log('-------')
 
 const freeTrip = new FreeTrip('nantes', 'Nantes', 'img/nantes.jpg')
-console.log(freeTrip.toString())
+console.log(freeTrip)
 
 
 
@@ -98,29 +102,42 @@ class TripService {
         // new Trip('nantes', 'Nantes', 'img/nantes.jpg')
         // new Trip('rio-de-janeiro', 'Rio de Janeiro', 'img/rio-de-janeiro.jpg
         this.trips = new Set();
-        this.trips.add( new Trip('paris', 'Paris', 'img/paris.jpg'))
-        this.trips.add( new Trip('nantes', 'Nantes', 'img/nantes.jpg'))
-        this.trips.add( new Trip('rio-de-janeiro', 'Rio de Janeiro', 'img/rio-de-janeiro.jpg'))
+        this.trips.add(new Trip('paris', 'Paris', 'img/paris.jpg'))
+        this.trips.add(new Trip('nantes', 'Nantes', 'img/nantes.jpg'))
+        this.trips.add(new Trip('rio-de-janeiro', 'Rio de Janeiro', 'img/rio-de-janeiro.jpg'))
 
-    } 
+    }
 
-    findByName( tripName) {
-        return new Promise( ( resolve, reject) => {
+    findByName(tripName) {
+        return new Promise((resolve, reject) => {
             setTimeout(() => {
-                // ici l'exécution du code est asynchrone
-                // TODO utiliser resolve et reject en fonction du résultat de la
-                //recherche
-                
-                trip = this.trips.findByName
-                if(  trip != null){
-                    resolve( trip)
-                }else{
-                    reject( 'No trip with name ' + tripName)
-                }           
 
-            }, 2000)
+                //console.log("debut code asynchrone")
+
+                for (const trip of this.trips) {
+                    //console.log( trip.name)
+
+                    if (trip.name === tripName) {
+                        console.log( trip)
+                        resolve(trip);
+
+                    }
+
+                }
+                // Promesse retournée : non trouvée 
+                reject('No trip with name ' + tripName)
+                //console.log("fin code asynchrone")
+
+            }, 1000)
         });
     }
+
+    toString() {
+
+        return `Free${super.toString()}`;
+
+    }
+
 }
 
 class PriceService {
@@ -129,9 +146,9 @@ class PriceService {
         // 'paris' --> price == 100
         // 'rio-de-janeiro' --> price == 800)
         // no price for 'nantes'
-        this.villes = new Map();
-        this.villes.set('paris', 100)
-        this.villes.set('rio-de-janeiro', 800)
+        this.prices = new Map();
+        this.prices.set('paris', 100)
+        this.prices.set('rio-de-janeiro', 800)
     }
     findPriceByTripId(tripId) {
         return new Promise((resolve, reject) => {
@@ -139,11 +156,52 @@ class PriceService {
                 // ici l'exécution du code est asynchrone
                 // TODO utiliser resolve et reject en fonction du résultat de
                 //la recherche
+                const price = this.prices.get(tripId);
+
+                if (price) {
+                    resolve(price);
+                } else {
+                    reject(`No price for trip id ${tripId}`);
+                }
+
             }, 2000)
         });
     }
 }
+/*
+console.log('--- Test Promesse ----')
+TripService1 = new TripService();
+TripService1.findByName( 'Paris')
+*/
 
-Trip = new TripService();
+console.log('--- Test Promesse ----')
+const TripService2 = new TripService();
 
-console.log( Trip.findByName( 'Paris'))
+TripService2.findByName("Paris")
+    .then(tripFind => console.log(`Trip found : ${tripFind}`))
+    .catch(err => console.log(err));
+
+TripService2.findByName("Toulouse")
+    .then(tripFind => console.log(`Trip found : ${tripFind}`))
+    .catch(err => console.log(err)); // là
+
+
+const priceService = new PriceService();
+priceService.findPriceByTripId("rio-de-janeiro")
+    .then(priceFound => console.log(`Price found : ${priceFound}`)) // ici
+    .catch(err => console.log(err));
+
+priceService.findPriceByTripId("nantes")
+    .then(tripFind => console.log(`Price found : ${tripFind}`))
+    .catch(err => console.log(err)); // là
+
+
+// du nom au prix
+// nom => findByName => id => findById => prix
+const nomVoyage = 'Paris';
+const TripService3 = new TripService();
+TripService3.findByName(nomVoyage)
+    .then(trip => trip.id)
+    .then(tripId => priceService.findPriceByTripId(tripId))
+    .then(price => console.log(`Price Found ${price} for ${nomVoyage}`))
+    .catch(err => console.log(err));
